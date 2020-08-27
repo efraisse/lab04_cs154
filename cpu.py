@@ -6,6 +6,56 @@ rf    = pyrtl.MemBlock(...)
 
 if __name__ == '__main__':
 
+    pc = pyrtl.Register(bitwidth = 32, name = 'pc');
+    opcode = pyrtl.WireVector(bitwidth = 6, name = 'opcode');
+    rs = pyrtl.WireVector(bitwidth = 5, name = 'rs')
+    rt = pyrtl.WireVector(bitwidth = 5, name = 'rt')
+    rd = pyrtl.WireVector(bitdwith = 5, name = 'rd')
+    shamt = pyrtl.WireVector(bitwidth = 5, name = 'shamt')
+    funct = pyrtl.WireVector(bitwidth = 6, name = 'funct')
+    REG_DST = pyrtl.WireVector(bitwidth = 1, name = 'REG_DST')
+    BRANCH = pyrtl.WireVector(bitwidth = 1, name = 'BRANCH')
+    REGWRITE = pyrtl.WireVector(bitwidth = 1, name = 'REGWRITE')
+    ALU_SRC = pyrtl.WireVector(bitwidth = 2, name = 'ALU_SRC')
+    MEM-WRITE = pyrtl.WireVector(bitwidth = 1, name = 'MEM_WRITE')
+    MEM_TO_REG = pyrtl.WireVector(bitwidth = 1, name = 'MEM_TO_REG')
+    ALU_OP = pyrtl.WireVector(bitwidth = 3, name = 'ALU_OP')
+    instruction = pyrtl.WireVector(bitwidth = 32, name = 'instruction')
+    instruction <<= memory[pc]
+    memory[pc] <<= instruction
+    mem[pc] = MemBlock.EnabledWrite(instruction, enable = we)
+
+
+
+    control_signals = pyrtl.wireVector(bitwidth = 9, name = 'control_signals')
+    with pyrtl.conditional_assignment:
+        with op == 0x0
+            with funct = 0x20
+                control_signals |= 0x280
+            with funct = 0x24
+                control_signals |= 0x281
+            with funct = 0x2A
+                control_signals |= 0x284
+
+        with op == 0x8
+            control_signals |= 0x281
+        
+        with op == 0xf
+            control_signals |= 0x0AA
+        
+        with op == 0xD
+            control_signals |= 0x0A3
+
+        with op == 0x23
+            control_signals |= 0x0AD
+
+        with op == 0x2b
+            control_signals |= 0x036
+
+        with op == 0x4
+            control_signals |= 0x127
+
+
     """
 
     Here is how you can test your code.
