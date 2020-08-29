@@ -4,56 +4,87 @@ i_mem = pyrtl.MemBlock(...)
 d_mem = pyrtl.MemBlock(...)
 rf    = pyrtl.MemBlock(...)
 
+
+
+pc = pyrtl.Register(bitwidth = 32, name = 'pc');
+opcode = pyrtl.wireVector(bitwidth = 6, name = 'opcode');
+rf  = pyrtl.MemBlock(bitwidth = 32, name = 'rf')
+d_mem = pyrtl.MemBlock(bitwidth = 32, addrwidth = ?, asynchronous = True)
+i_mem = pyrtl.MemBlock(bitwidth = 32, addrwidth = ?)
+
+
+ins = pyrtl.WireVector(bitwidth=32, name='ins')
+opcode = pyrlt.WireVector(bitwidth=6, name='opcode')
+rs = pyrtl.WireVector(bitwidth=5, name='rs')
+rt = pyrtl.WireVector(bitwidth=5, name='rd')
+rd = pyrtl.WireVector(bitwidth=5, name='rd')
+imm = pyrtl.WireVector(bitwidth=16, name='imm')
+funct = pyrtl.WireVector(bitwidth=6, name='funct')
+
+REG_DEST = pyrtl.WireVector(bitwidth=1, name='REG_DEST')
+BRANCH = pyrtl.WireVector(bitwidth=1, name='BRANCH')
+REG_WRITE = pyrtl.WireVector(bitwidth=1, name='REG_WRITE')
+ALU_SRC = pyrtl.WireVector(bitwidth=2, name='ALU_SRC')
+MEM_WRITE = pyrtl.WireVector(bitwidth=1, name='MEM_WRITE')
+MEM_TO_REG = pyrtl.WireVector(bitwidth=1, name='MEM_TO_REG')
+ALU_OP = pyrtl.WireVector(bitwidth=3, name='ALU_OP')
+
+control_signals=pyrtl.WireVector(bitwidth = 10, name='control_signals')
+
+
+def update():
+    ins <<= i_mem[pc]
+    pc.next <<= pc+1
+
+    opcode <<= ins[-6:]
+    rs <<= ins[-11:-6]
+    rt <<= ins[-16:-11]
+    rd <<= ins[-21:-16]
+    funct <<= ins[0:6]
+    imm <<= ins[0:16]
+
+    control_signals = control(opcode, funct)
+    reg_dst <<= control_signals[9:10]
+    branch <<= control_signals[8:9]
+    regwrite <<= control_signals[7:8]
+    alu_src <<= control_signals[5:7]
+    mem_write <<= control_signals[4:5]
+    mem_to_reg <<= control_signals[3:4]
+    alu_op <<= control_signals[0:3]
+    
+    alu()
+
+def alu(input_src_1, input_src_2, zero, alu_op)
+
+
+def controller(opcode, funct):
+    with pyrtl.conditional_assignment:
+        with opcode == 0:
+            with funct == 0x20:
+                control_signals |= 0x280
+            with funct == 0x24:
+                control_signals |= 0x281
+            with funct == 0x2a:
+                control_signals |= 0x284
+        with opcode == 0x08:
+            control_signals |= 0x0a0
+        with opcode == 0x0f:
+            control_signals |= 0x0aa
+        with opcode == 0x0d:
+            control_signals |= 0x0a3
+        with opcode == 0x23:
+            control_signals |= 0x0a8
+        with opcode == 0x2b:
+            control_signals |= 0x030
+        with opcode == 0x04:
+            control_signals |= 0x125
+
+    return control_signals
+
+
+
 if __name__ == '__main__':
 
-    pc = pyrtl.Register(bitwidth = 32, name = 'pc');
-    opcode = pyrtl.WireVector(bitwidth = 6, name = 'opcode');
-    rs = pyrtl.WireVector(bitwidth = 5, name = 'rs')
-    rt = pyrtl.WireVector(bitwidth = 5, name = 'rt')
-    rd = pyrtl.WireVector(bitdwith = 5, name = 'rd')
-    shamt = pyrtl.WireVector(bitwidth = 5, name = 'shamt')
-    funct = pyrtl.WireVector(bitwidth = 6, name = 'funct')
-    REG_DST = pyrtl.WireVector(bitwidth = 1, name = 'REG_DST')
-    BRANCH = pyrtl.WireVector(bitwidth = 1, name = 'BRANCH')
-    REGWRITE = pyrtl.WireVector(bitwidth = 1, name = 'REGWRITE')
-    ALU_SRC = pyrtl.WireVector(bitwidth = 2, name = 'ALU_SRC')
-    MEM-WRITE = pyrtl.WireVector(bitwidth = 1, name = 'MEM_WRITE')
-    MEM_TO_REG = pyrtl.WireVector(bitwidth = 1, name = 'MEM_TO_REG')
-    ALU_OP = pyrtl.WireVector(bitwidth = 3, name = 'ALU_OP')
-    instruction = pyrtl.WireVector(bitwidth = 32, name = 'instruction')
-    instruction <<= memory[pc]
-    memory[pc] <<= instruction
-    mem[pc] = MemBlock.EnabledWrite(instruction, enable = we)
-
-
-
-    control_signals = pyrtl.wireVector(bitwidth = 9, name = 'control_signals')
-    with pyrtl.conditional_assignment:
-        with op == 0x0
-            with funct = 0x20
-                control_signals |= 0x280
-            with funct = 0x24
-                control_signals |= 0x281
-            with funct = 0x2A
-                control_signals |= 0x284
-
-        with op == 0x8
-            control_signals |= 0x281
-        
-        with op == 0xf
-            control_signals |= 0x0AA
-        
-        with op == 0xD
-            control_signals |= 0x0A3
-
-        with op == 0x23
-            control_signals |= 0x0AD
-
-        with op == 0x2b
-            control_signals |= 0x036
-
-        with op == 0x4
-            control_signals |= 0x127
 
 
     """
