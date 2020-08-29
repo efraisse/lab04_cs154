@@ -43,18 +43,46 @@ def update():
     funct <<= ins[0:6]
     imm <<= ins[0:16]
 
-    control_signals = control(opcode, funct)
+    control_signals = controller(opcode, funct)
     reg_dst <<= control_signals[9:10]
-    branch <<= control_signals[8:9]
-    regwrite <<= control_signals[7:8]
+    branch <<= control_signals[8:9]i
+    regwrite <<= control_signals[7:8]i
     alu_src <<= control_signals[5:7]
     mem_write <<= control_signals[4:5]
     mem_to_reg <<= control_signals[3:4]
     alu_op <<= control_signals[0:3]
     
-    alu()
+    
 
-def alu(input_src_1, input_src_2, zero, alu_op)
+def alu(input_src_1, input_src_2, alu_op):
+    zero = 0
+    with alu_op == 0:
+        return input_src_1 + input_src_2, zero
+    with alu_op == 1:
+        return input_src_1 & input_src_2, zero
+    with alu_op == 2:
+        return input_src_2, zero
+    with alu_op == 3:
+        return input_src_1 | input_src_2, zero
+    
+    with alu_op == 4:
+        result = input_src_1 - input_src_2:
+            with result < 0:
+                zero = 1
+                return result, zero
+
+            with result >= 0
+                return result, zero
+                
+    with alu_op == 5:
+        result = input_src_1 - input_src_2:
+            with result == 0:
+                zero = 1
+                return result, zero
+
+            with result == 1:
+                return result, zero
+    
 
 
 def controller(opcode, funct):
