@@ -1,40 +1,13 @@
 import pyrtl
 
-i_mem = pyrtl.MemBlock(...)
-d_mem = pyrtl.MemBlock(...)
-rf    = pyrtl.MemBlock(...)
-
-
-
-pc = pyrtl.Register(bitwidth = 32, name = 'pc');
-opcode = pyrtl.wireVector(bitwidth = 6, name = 'opcode');
-rf  = pyrtl.MemBlock(bitwidth = 32, name = 'rf')
-d_mem = pyrtl.MemBlock(bitwidth = 32, addrwidth = ?, asynchronous = True)
-i_mem = pyrtl.MemBlock(bitwidth = 32, addrwidth = ?)
-
-
-ins = pyrtl.WireVector(bitwidth=32, name='ins')
-opcode = pyrlt.WireVector(bitwidth=6, name='opcode')
-rs = pyrtl.WireVector(bitwidth=5, name='rs')
-rt = pyrtl.WireVector(bitwidth=5, name='rd')
-rd = pyrtl.WireVector(bitwidth=5, name='rd')
-imm = pyrtl.WireVector(bitwidth=16, name='imm')
-funct = pyrtl.WireVector(bitwidth=6, name='funct')
-
-REG_DEST = pyrtl.WireVector(bitwidth=1, name='REG_DEST')
-BRANCH = pyrtl.WireVector(bitwidth=1, name='BRANCH')
-REG_WRITE = pyrtl.WireVector(bitwidth=1, name='REG_WRITE')
-ALU_SRC = pyrtl.WireVector(bitwidth=2, name='ALU_SRC')
-MEM_WRITE = pyrtl.WireVector(bitwidth=1, name='MEM_WRITE')
-MEM_TO_REG = pyrtl.WireVector(bitwidth=1, name='MEM_TO_REG')
-ALU_OP = pyrtl.WireVector(bitwidth=3, name='ALU_OP')
-
-control_signals=pyrtl.WireVector(bitwidth = 10, name='control_signals')
-
+rf_out1 = pyrtl.WireVector(bitwidth = 32, name = 'rf_out1')
+rf_out2 = pyrtl.WireVector(bitwidth = 32, name = 'rf_out2')
+writeReg = pyrtl.WireVector(bitwidth = 32, name = 'writeReg')
+writeData = pyrtl.WireVector(bitwidth = 32, name = 'writeData')
 
 def update():
     ins <<= i_mem[pc]
-    pc.next <<= pc+1
+    pc.next <<= pc + 1
 
     opcode <<= ins[-6:]
     rs <<= ins[-11:-6]
@@ -53,8 +26,41 @@ def update():
     alu_op <<= control_signals[0:3]
     
     
+def mux_alu_src(input1, input2, select):
 
-def alu(input_src_1, input_src_2, alu_op):
+    result = pyrtl.WireVector(bitwidth = 32, name = 'result')
+    result <<= input2
+
+    with select == 0:
+        return input1
+    with select == 1:
+        return result
+    with select == 2:
+        result[16:32] <<= 0x0000
+        return result
+
+def mux_reg_dst(rt, rd, reg_dst):
+    with reg_dst == 0:
+        return rt
+    with reg_dst == 1:
+        return rd
+
+def mux_mem_to_reg(readData, aluOut, memToReg):
+    with memToReg == 0:
+        return aluOut
+    with memToReg == 1:
+        return readData
+
+def mux_branch(pc1, addAlu, branch):
+    with branch == 0:
+        return pc1
+    with branch == 1:
+        return addAlu + pc1
+
+def add_alu(immed, pc1):
+    return immed + pc1
+
+def alu(input_src_1, input_src_2, zero, alu_op):
     zero = 0
     with alu_op == 0:
         return input_src_1 + input_src_2, zero
@@ -72,6 +78,7 @@ def alu(input_src_1, input_src_2, alu_op):
                 return result, zero
 
             with result >= 0
+
                 return result, zero
                 
     with alu_op == 5:
@@ -80,7 +87,7 @@ def alu(input_src_1, input_src_2, alu_op):
                 zero = 1
                 return result, zero
 
-            with result == 1:
+            with result != 0:
                 return result, zero
     
 
@@ -99,7 +106,7 @@ def controller(opcode, funct):
         with opcode == 0x0f:
             control_signals |= 0x0aa
         with opcode == 0x0d:
-            control_signals |= 0x0a3
+            control_signals |= 0x0c3
         with opcode == 0x23:
             control_signals |= 0x0a8
         with opcode == 0x2b:
@@ -108,6 +115,87 @@ def controller(opcode, funct):
             control_signals |= 0x125
 
     return control_signals
+
+def cpu(pc, i_mem, d_mem, rf, ins):
+
+    pc = pyrtl.Register(bitwidth = 32, name = 'pc');
+    rf  = pyrtl.MemBlock(bitwidth = 32,  addrwidth = 32, asynchronous = True)
+    d_mem = pyrtl.MemBlock(bitwidth = 32, addrwidth = 32, asynchronous = True)
+    i_mem = pyrtl.MemBlock(bitwidth = 32, addrwidth = 32)
+
+    ins = pyrtl.WireVector(bitwidth=32, name='ins')
+    opcode = pyrlt.WireVector(bitwidth=6, name='opcode')
+    rs = pyrtl.WireVector(bitwidth=5, name='rs')
+    rt = pyrtl.WireVector(bitwidth=5, name='rd')
+    rd = pyrtl.WireVector(bitwidth=5, name='rd')
+    imm = pyrtl.WireVector(bitwidth=16, name='imm')
+    funct = pyrtl.WireVector(bitwidth=6, name='funct')
+
+    REG_DEST = pyrtl.WireVector(bitwidth=1, name='REG_DEST')
+    BRANCH = pyrtl.WireVector(bitwidth=1, name='BRANCH')
+    REG_WRITE = pyrtl.WireVector(bitwidth=1, name='REG_WRITE')
+    ALU_SRC = pyrtl.WireVector(bitwidth=2, name='ALU_SRC')
+    MEM_WRITE = pyrtl.WireVector(bitwidth=1, name='MEM_WRITE')
+    MEM_TO_REG = pyrtl.WireVector(bitwidth=1, name='MEM_TO_REG')
+    ALU_OP = pyrtl.WireVector(bitwidth=3, name='ALU_OP')
+
+    control_signals=pyrtl.WireVector(bitwidth = 10, name='control_signals')
+
+    read_reg_1 = pyrtl.WireVector(bitwidth = 5, name = 'read_reg_1')
+    read_reg_2 = pyrtl.WireVector(bitwidth = 5, name = 'read_reg_2')
+    writeReg == pyrtl.WireVector(bitwidth = 5, name = 'writeReg')
+    read_data_1 = pyrtl.WireVector(bitwidth = 5, name = 'read_data_1')
+    read_data_2 = pyrtl.WireVector(bitwidth = 5, name = 'read_data_2')
+
+    address = pyrtl.wireVector(bitwidth = 32, name = 'address')
+    writeData = pyrtl.wireVector(bitwidth = 32, name = 'writeData')
+    readData = pyrtl.wireVector(bitwidth = 32, name = 'readData')
+    dataMemory = pyrtl.wireVector(bitwidth = 32, name = 'dataMemory')
+    
+    opcode <<= ins[-6:]
+    rs <<= ins[-11:-6]
+    rt <<= ins[-16:-11]
+    rd <<= ins[-21:-16]
+    funct <<= ins[0:6]
+    imm <<= ins[0:16]
+
+    control_signals = controller(opcode, funct)
+    reg_dst <<= control_signals[9:10]
+    branch <<= control_signals[8:9]
+    regwrite <<= control_signals[7:8]
+    alu_src <<= control_signals[5:7]
+    mem_write <<= control_signals[4:5]
+    mem_to_reg <<= control_signals[3:4]
+    alu_op <<= control_signals[0:3]
+ 
+    read_reg_1 <<= rf[rs]
+    read_reg_2 <<= rf[rt]
+
+    reg_dst_result = mux_reg_dst(rt, rd, REG_DEST)
+
+    writeReg <<= rf[reg_dst_result]
+
+    read_data_1 <<= read_reg_1
+    read_data_2 <<= read_reg_2
+
+    alu_src_result = (read_data_2, imm, ALU_SRC)
+
+    alu_op_result = (rs, alu_src_result, zero, ALU_OP)
+
+    address <<= d_mem[alu_op_result]
+    d_mem[alu_op_result] <<= read_data_2
+    readData <<= d_mem[alu_op_result]
+
+    mem_to_reg_result = mux_mem_to_reg(readData, alu_op_result, MEM_TO_REG)
+
+    rf[reg_dst_result] <<= mem_to_reg_result
+
+
+    
+
+
+
+
 
 
 
