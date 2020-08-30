@@ -182,9 +182,12 @@ def cpu(pc, i_mem, d_mem, rf, ins):
 
     alu_op_result = (rs, alu_src_result, zero, ALU_OP)
 
-    address <<= d_mem[alu_op_result]
-    d_mem[alu_op_result] <<= read_data_2
-    readData <<= d_mem[alu_op_result]
+    with pyrtl.conditional_assignment:
+        with MEM_WRITE == 1:
+            d_mem[alu_op_result] <<= read_data_2
+
+        with MEM_READ == 1:
+            readData <<= d_mem[alu_op_result]
 
     mem_to_reg_result = mux_mem_to_reg(readData, alu_op_result, MEM_TO_REG)
 
