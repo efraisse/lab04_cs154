@@ -47,9 +47,9 @@ def mux_reg_dst(rt, rd, reg_dst):
 def mux_mem_to_reg(readData, aluOut, memToReg):
     with pyrtl.conditional_assignment:
         with memToReg == 0:
-            return aluOut
+            write_data |= result_op
         with memToReg == 1:
-            return readData
+            write_data |= read_data
 
 def mux_branch(pc1, addAlu, branch):
     with pyrtl.conditional_assignment:
@@ -78,22 +78,22 @@ def alu(input_src_1, input_src_2, zero, alu_op):
             return input_src_1 | input_src_2, zero
     
         with alu_op == 4:
-            result |= input_src_1 - input_src_2
-            with result < 0:
+            result_op |= input_src_1 - input_src_2
+            with result_op < 0:
                 zero |= 1
-                return result, zero
+                return result_op, zero
 
-            with result >= 0:
-                return result, zero
+            with result_op >= 0:
+                return result_op, zero
                 
         with alu_op == 5:
-            result = input_src_1 - input_src_2
-            with result == 0:
+            result_op = input_src_1 - input_src_2
+            with result_op == 0:
                 zero |= 1
-                return result, zero
+                return result_op, zero
 
-            with result != 0:
-                return result, zero
+            with result_op != 0:
+                return result_op, zero
     
 def controller(opcode, funct):
     with pyrtl.conditional_assignment:
@@ -168,28 +168,28 @@ def cpu(pc, i_mem, d_mem, rf):
     MEM_TO_REG <<= control_signals[3:4]
     ALU_OP <<= control_signals[0:3]
  
-    read_reg_1 <<= rf[rs]
-    read_reg_2 <<= rf[rt]
+    read_reg_1 <<= rf[rs] #
+    read_reg_2 <<= rf[rt] #
 
-    reg_dst_result = mux_reg_dst(rt, rd, REG_DEST)
+    reg_dst_result = mux_reg_dst(rt, rd, REG_DEST) #
 
-    writeReg <<= rf[reg_dst_result]
+    #writeReg <<= rf[reg_dst_result]
 
-    read_data_1 <<= read_reg_1
-    read_data_2 <<= read_reg_2
+    alu_src_result = (read_reg_2, imm, ALU_SRC) #
 
-    alu_src_result = (read_data_2, imm, ALU_SRC)
-
-    alu_op_result, ZERO = (rs, alu_src_result, zero, ALU_OP)
+    alu_op_result, ZERO = (rs, alu_src_result, zero, ALU_OP) #
 
     with pyrtl.conditional_assignment:
         with MEM_WRITE == 1:
-            d_mem[alu_op_result] |= read_data_2
+            d_mem[alu_op_result] |= read_reg_2
 
         with MEM_READ == 1:
             readData |= d_mem[alu_op_result]
 
-    mem_to_reg_result = mux_mem_to_reg(readData, alu_op_result, MEM_TO_REG)
+    mem_to_reg_result = mux_mem_to_reg(readData, alu_op_result, MEM_TO_REG) #
+
+    d_mem[result_op] <<= pyrtl.MemBlock.EnabledWrite(read_reg_2, enable = MEM_WRITE)
+    rf[
 
     rf[reg_dst_result] <<= mem_to_reg_result
 
