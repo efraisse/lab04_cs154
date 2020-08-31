@@ -1,8 +1,8 @@
 import pyrtl
 
-rf  = pyrtl.MemBlock(bitwidth = 32,  addrwidth = 32, asynchronous = True)
-d_mem = pyrtl.MemBlock(bitwidth = 32, addrwidth = 32, asynchronous = True)
-i_mem = pyrtl.MemBlock(bitwidth = 32, addrwidth = 32)
+rf  = pyrtl.MemBlock(bitwidth = 32,  addrwidth = 32, asynchronous = True, name = 'rf')
+d_mem = pyrtl.MemBlock(bitwidth = 32, addrwidth = 32, asynchronous = True, name = 'd_mem')
+i_mem = pyrtl.MemBlock(bitwidth = 32, addrwidth = 32, name = 'i_mem')
 
 pc = pyrtl.Register(bitwidth = 32, name = 'pc');
 
@@ -13,7 +13,6 @@ def update():
 
     ins <<= i_mem[pc]
     branch <<= immed
-
         
     with pyrtl.conditional_assignment:
         with (BRANCH & ZERO) == 0:
@@ -22,22 +21,21 @@ def update():
             pc_jump |= 1 + branch
 
     pc.next <<= pc + pc_jump
-
     cpu(pc, i_mem, d_mem, rf) 
     
 def mux_alu_src(input1, input2, select):
 
-    result = pyrtl.WireVector(bitwidth = 32, name = 'result')
+    result_src = pyrtl.WireVector(bitwidth = 32, name = 'result_src')
 
     with pyrtl.conditional_assignment:
         with select == 0:
-            result |= input1
+            result_src |= input1
         with select == 1:
-            result |= imm.sig_extended(32)
+            result_src |= imm.sig_extended(32)
         with select == 2:
-            result |= imm.zero_extended(32)
+            result_src |= imm.zero_extended(32)
 
-    return result
+    return result_src
 
 def mux_reg_dst(rt, rd, reg_dst):
     with pyrtl.conditional_assignment:
@@ -64,33 +62,38 @@ def add_alu(immed, pc1):
     return immed + pc1 + 1
 
 def alu(input_src_1, input_src_2, zero, alu_op):
+
+    result_op = pyrtl.WireVector(bitwidth = 32, name = 'result_op')
+
     zero |= 0
-    with alu_op == 0:
-        return input_src_1 + input_src_2, zero
-    with alu_op == 1:
-        return input_src_1 & input_src_2, zero
-    with alu_op == 2:
-        return input_src_2, zero
-    with alu_op == 3:
-        return input_src_1 | input_src_2, zero
+
+    with pyrtl.conditional_assignment:
+        with alu_op == 0:
+            return input_src_1 + input_src_2, zero
+        with alu_op == 1:
+            return input_src_1 & input_src_2, zero
+        with alu_op == 2:
+            return input_src_2, zero
+        with alu_op == 3:
+            return input_src_1 | input_src_2, zero
     
-    with alu_op == 4:
-        result |= input_src_1 - input_src_2
-        with result < 0:
-            zero |= 1
-            return result, zero
+        with alu_op == 4:
+            result |= input_src_1 - input_src_2
+            with result < 0:
+                zero |= 1
+                return result, zero
 
-        with result >= 0:
-            return result, zero
+            with result >= 0:
+                return result, zero
                 
-    with alu_op == 5:
-        result = input_src_1 - input_src_2
-        with result == 0:
-            zero |= 1
-            return result, zero
+        with alu_op == 5:
+            result = input_src_1 - input_src_2
+            with result == 0:
+                zero |= 1
+                return result, zero
 
-        with result != 0:
-            return result, zero
+            with result != 0:
+                return result, zero
     
 def controller(opcode, funct):
     with pyrtl.conditional_assignment:
