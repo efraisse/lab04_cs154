@@ -36,7 +36,7 @@ def mux_alu_src(input1, input2, select):
     with select == 1:
         return result
     with select == 2:
-        result[16:32] <<= 0x0000
+        result <<= imm.zero_extended(32)
         return result
 
 def mux_reg_dst(rt, rd, reg_dst):
@@ -143,7 +143,7 @@ def cpu(pc, i_mem, d_mem, rf, ins):
 
     read_reg_1 = pyrtl.WireVector(bitwidth = 5, name = 'read_reg_1')
     read_reg_2 = pyrtl.WireVector(bitwidth = 5, name = 'read_reg_2')
-    writeReg == pyrtl.WireVector(bitwidth = 5, name = 'writeReg')
+    writeReg = pyrtl.WireVector(bitwidth = 5, name = 'writeReg')
     read_data_1 = pyrtl.WireVector(bitwidth = 5, name = 'read_data_1')
     read_data_2 = pyrtl.WireVector(bitwidth = 5, name = 'read_data_2')
 
@@ -160,13 +160,13 @@ def cpu(pc, i_mem, d_mem, rf, ins):
     imm <<= ins[0:16]
 
     control_signals = controller(opcode, funct)
-    reg_dst <<= control_signals[9:10]
-    branch <<= control_signals[8:9]
-    regwrite <<= control_signals[7:8]
-    alu_src <<= control_signals[5:7]
-    mem_write <<= control_signals[4:5]
-    mem_to_reg <<= control_signals[3:4]
-    alu_op <<= control_signals[0:3]
+    REG_DST <<= control_signals[9:10]
+    BRANCH <<= control_signals[8:9]
+    REG_WRITE <<= control_signals[7:8]
+    ALU_SRC <<= control_signals[5:7]
+    MEM_WRITE <<= control_signals[4:5]
+    MEM_TO_REG <<= control_signals[3:4]
+    ALU_OP <<= control_signals[0:3]
  
     read_reg_1 <<= rf[rs]
     read_reg_2 <<= rf[rt]
@@ -194,7 +194,7 @@ def cpu(pc, i_mem, d_mem, rf, ins):
     rf[reg_dst_result] <<= mem_to_reg_result
 
 
-    
+   #implement the branch instruction with this and then you'll be pretty much done. 
 
 
 
