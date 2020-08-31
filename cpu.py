@@ -58,7 +58,7 @@ def mux_branch(pc1, addAlu, branch):
         return addAlu + pc1
 
 def add_alu(immed, pc1):
-    return immed + pc1
+    return immed + pc1 + 1
 
 def alu(input_src_1, input_src_2, zero, alu_op):
     zero = 0
@@ -180,18 +180,27 @@ def cpu(pc, i_mem, d_mem, rf, ins):
 
     alu_src_result = (read_data_2, imm, ALU_SRC)
 
-    alu_op_result = (rs, alu_src_result, zero, ALU_OP)
+    alu_op_result, ZERO = (rs, alu_src_result, zero, ALU_OP)
 
     with pyrtl.conditional_assignment:
         with MEM_WRITE == 1:
-            d_mem[alu_op_result] <<= read_data_2
+            d_mem[alu_op_result] |= read_data_2
 
         with MEM_READ == 1:
-            readData <<= d_mem[alu_op_result]
+            readData |= d_mem[alu_op_result]
 
     mem_to_reg_result = mux_mem_to_reg(readData, alu_op_result, MEM_TO_REG)
 
     rf[reg_dst_result] <<= mem_to_reg_result
+
+    with pyrtl.conditional_assignment:
+        with (BRANCH & ZERO) == 1:
+            return add_alu(pc, immed);
+
+        with (BRANCH & ZERO) == 0:
+            return pc + 1
+
+    
 
 
    #implement the branch instruction with this and then you'll be pretty much done. 
