@@ -6,7 +6,7 @@ i_mem = pyrtl.MemBlock(bitwidth = 32, addrwidth = 32, name = 'i_mem')
 
 pc = pyrtl.Register(bitwidth = 32, name = 'pc')
 
-def update():
+def update(pc):
 
     branch = pyrtl.WireVector(bitwidth = 32, name = 'branch')
     pc_jump = pyrtl.WireVector(bitwdith = 32, name = 'pc_jump')
@@ -18,10 +18,10 @@ def update():
         with (BRANCH & ZERO) == 0:
             pc_jump |= 1
         with (BRANCH & ZERO) == 1:
+            branch |= branch.sig_extended(32)
             pc_jump |= 1 + branch
 
     pc.next <<= pc + pc_jump
-    cpu(pc, i_mem, d_mem, rf) 
     
 def mux_alu_src(input1, input2, select):
 
