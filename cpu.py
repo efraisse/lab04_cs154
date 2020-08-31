@@ -1,15 +1,14 @@
 import pyrtl
 
-pc = pyrtl.Register(bitwidth = 32, name = 'pc');
-ins = pyrtl.WireVector(bitwidth = 32, name = 'ins')
 rf  = pyrtl.MemBlock(bitwidth = 32,  addrwidth = 32, asynchronous = True)
 d_mem = pyrtl.MemBlock(bitwidth = 32, addrwidth = 32, asynchronous = True)
 i_mem = pyrtl.MemBlock(bitwidth = 32, addrwidth = 32)
 
-ins <<= i_mem[pc]
+pc = pyrtl.Register(bitwidth = 32, name = 'pc');
 
 def update():
-    #ins <<= i_mem[pc]
+
+    ins <<= i_mem[pc]
     pc.next <<= pc + 1
 
     cpu(pc, i_mem, d_mem, rf) 
@@ -17,33 +16,37 @@ def update():
 def mux_alu_src(input1, input2, select):
 
     result = pyrtl.WireVector(bitwidth = 32, name = 'result')
-    result <<= input2
-#use pyrtl.conditional_assignment:
-    with select == 0:
-        return input1
-    with select == 1:
-        return result
-    with select == 2:
-        result |= imm.zero_extended(32)
-        return result
+
+    with pyrtl.conditional_assignment:
+        with select == 0:
+            result |= input1
+        with select == 1:
+            result |= imm.sig_extended(32)
+        with select == 2:
+            result |= imm.zero_extended(32)
+
+    return result
 
 def mux_reg_dst(rt, rd, reg_dst):
-    with reg_dst == 0:
-        return rt
-    with reg_dst == 1:
-        return rd
+    with pyrtl.conditional_assignment:
+        with reg_dst == 0:
+            return rt
+        with reg_dst == 1:
+            return rd
 
 def mux_mem_to_reg(readData, aluOut, memToReg):
-    with memToReg == 0:
-        return aluOut
-    with memToReg == 1:
-        return readData
+    with pyrtl.conditional_assignment:
+        with memToReg == 0:
+            return aluOut
+        with memToReg == 1:
+            return readData
 
 def mux_branch(pc1, addAlu, branch):
-    with branch == 0:
-        return pc1
-    with branch == 1:
-        return addAlu + pc1
+    with pyrtl.conditional_assignment:
+        with branch == 0:
+            return pc1
+        with branch == 1:
+            return addAlu + pc1
 
 def add_alu(immed, pc1):
     return immed + pc1 + 1
@@ -77,8 +80,6 @@ def alu(input_src_1, input_src_2, zero, alu_op):
         with result != 0:
             return result, zero
     
-
-
 def controller(opcode, funct):
     with pyrtl.conditional_assignment:
         with opcode == 0:
@@ -105,7 +106,7 @@ def controller(opcode, funct):
 
 def cpu(pc, i_mem, d_mem, rf):
 
-    ins = pyrtl.WireVector(bitwidth = 32, name= 'ins')
+    ins = pyrtl.WireVector(bitwidth = 32, name = 'ins')
 
     opcode = pyrlt.WireVector(bitwidth=6, name='opcode')
     rs = pyrtl.WireVector(bitwidth=5, name='rs')
@@ -122,7 +123,7 @@ def cpu(pc, i_mem, d_mem, rf):
     MEM_TO_REG = pyrtl.WireVector(bitwidth=1, name='MEM_TO_REG')
     ALU_OP = pyrtl.WireVector(bitwidth=3, name='ALU_OP')
 
-    control_signals=pyrtl.WireVector(bitwidth = 10, name='control_signals')
+    control_signals = pyrtl.WireVector(bitwidth = 10, name='control_signals')
 
     read_reg_1 = pyrtl.WireVector(bitwidth = 5, name = 'read_reg_1')
     read_reg_2 = pyrtl.WireVector(bitwidth = 5, name = 'read_reg_2')
@@ -181,7 +182,9 @@ def cpu(pc, i_mem, d_mem, rf):
             return add_alu(pc, immed);
 
         with (BRANCH & ZERO) == 0:
-            return pc + 1 
+            return pc + 1
+
+    update()
 
 
 if __name__ == '__main__':
