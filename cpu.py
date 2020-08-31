@@ -8,8 +8,20 @@ pc = pyrtl.Register(bitwidth = 32, name = 'pc');
 
 def update():
 
+    branch = pyrtl.WireVector(bitwidth = 32, name = 'branch')
+    pc_jump = pyrtl.WireVector(bitwdith = 32, name = 'pc_jump')
+
     ins <<= i_mem[pc]
-    pc.next <<= pc + 1
+    branch <<= immed
+
+        
+    with pyrtl.conditional_assignment:
+        with (BRANCH & ZERO) == 0:
+            pc_jump |= 1
+        with (BRANCH & ZERO) == 1:
+            pc_jump |= 1 + branch
+
+    pc.next <<= pc + pc_jump
 
     cpu(pc, i_mem, d_mem, rf) 
     
@@ -176,13 +188,6 @@ def cpu(pc, i_mem, d_mem, rf):
     mem_to_reg_result = mux_mem_to_reg(readData, alu_op_result, MEM_TO_REG)
 
     rf[reg_dst_result] <<= mem_to_reg_result
-
-    with pyrtl.conditional_assignment:
-        with (BRANCH & ZERO) == 1:
-            return add_alu(pc, immed);
-
-        with (BRANCH & ZERO) == 0:
-            return pc + 1
 
     update()
 
