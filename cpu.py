@@ -1,36 +1,24 @@
 import pyrtl
 
-rf_out1 = pyrtl.WireVector(bitwidth = 32, name = 'rf_out1')
-rf_out2 = pyrtl.WireVector(bitwidth = 32, name = 'rf_out2')
-writeReg = pyrtl.WireVector(bitwidth = 32, name = 'writeReg')
-writeData = pyrtl.WireVector(bitwidth = 32, name = 'writeData')
+pc = pyrtl.Register(bitwidth = 32, name = 'pc');
+ins = pyrtl.WireVector(bitwidth = 32, name = 'ins')
+rf  = pyrtl.MemBlock(bitwidth = 32,  addrwidth = 32, asynchronous = True)
+d_mem = pyrtl.MemBlock(bitwidth = 32, addrwidth = 32, asynchronous = True)
+i_mem = pyrtl.MemBlock(bitwidth = 32, addrwidth = 32)
+
+ins <<= i_mem[pc]
 
 def update():
-    ins <<= i_mem[pc]
+    #ins <<= i_mem[pc]
     pc.next <<= pc + 1
 
-    opcode <<= ins[-6:]
-    rs <<= ins[-11:-6]
-    rt <<= ins[-16:-11]
-    rd <<= ins[-21:-16]
-    funct <<= ins[0:6]
-    imm <<= ins[0:16]
-
-    control_signals = controller(opcode, funct)
-    reg_dst <<= control_signals[9:10]
-    branch <<= control_signals[8:9]
-    regwrite <<= control_signals[7:8]
-    alu_src <<= control_signals[5:7]
-    mem_write <<= control_signals[4:5]
-    mem_to_reg <<= control_signals[3:4]
-    alu_op <<= control_signals[0:3]
-    
+    cpu(pc, i_mem, d_mem, rf) 
     
 def mux_alu_src(input1, input2, select):
 
     result = pyrtl.WireVector(bitwidth = 32, name = 'result')
     result <<= input2
-
+#use pyrtl.conditional_assignment:
     with select == 0:
         return input1
     with select == 1:
@@ -115,14 +103,10 @@ def controller(opcode, funct):
 
     return control_signals
 
-def cpu(pc, i_mem, d_mem, rf, ins):
+def cpu(pc, i_mem, d_mem, rf):
 
-    pc = pyrtl.Register(bitwidth = 32, name = 'pc');
-    rf  = pyrtl.MemBlock(bitwidth = 32,  addrwidth = 32, asynchronous = True)
-    d_mem = pyrtl.MemBlock(bitwidth = 32, addrwidth = 32, asynchronous = True)
-    i_mem = pyrtl.MemBlock(bitwidth = 32, addrwidth = 32)
+    ins = pyrtl.WireVector(bitwidth = 32, name= 'ins')
 
-    ins = pyrtl.WireVector(bitwidth=32, name='ins')
     opcode = pyrlt.WireVector(bitwidth=6, name='opcode')
     rs = pyrtl.WireVector(bitwidth=5, name='rs')
     rt = pyrtl.WireVector(bitwidth=5, name='rd')
