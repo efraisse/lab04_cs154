@@ -4,7 +4,7 @@ rf  = pyrtl.MemBlock(bitwidth = 32,  addrwidth = 32, asynchronous = True, name =
 d_mem = pyrtl.MemBlock(bitwidth = 32, addrwidth = 32, asynchronous = True, name = 'd_mem')
 i_mem = pyrtl.MemBlock(bitwidth = 32, addrwidth = 32, name = 'i_mem')
 
-pc = pyrtl.Register(bitwidth = 32, name = 'pc');
+pc = pyrtl.Register(bitwidth = 32, name = 'pc')
 
 def update():
 
@@ -115,9 +115,10 @@ def controller(opcode, funct):
         with opcode == 0x2b:
             control_signals |= 0x030
         with opcode == 0x04:
-            control_signals |= 0x125
+            control_signals |= 0x105
 
     return control_signals
+
 
 def cpu(pc, i_mem, d_mem, rf):
 
