@@ -96,7 +96,7 @@ def cpu(pc, i_mem, d_mem, rf):
                 ZERO |= 0
             with alu_op == 3:
                 alu_op_result |= input_src_1 | input_src_2
-                ZERO = 0
+                ZERO |= 0
     
             with alu_op == 4:
                 alu_op_result |= input_src_1 - input_src_2
@@ -138,7 +138,7 @@ def cpu(pc, i_mem, d_mem, rf):
             writeData |= readData
 
     #two outputs of the alu_op
-    alu(rs, alu_src_result, ZERO, ALU_OP, alu_op_result)
+    alu(read_reg_1, alu_src_result, ZERO, ALU_OP, alu_op_result)
 
     #is writing back to a register required?
     with pyrtl.conditional_assignment:
@@ -236,7 +236,7 @@ if __name__ == '__main__':
     })
 
     # Run for an arbitrarily large number of cycles.
-    for cycle in range(3):
+    for cycle in range(500):
         sim.step({})
 
     # Use render_trace() to debug if your code doesn't work.
