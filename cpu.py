@@ -186,12 +186,12 @@ def cpu(pc, i_mem, d_mem, rf):
     alu_src_result = mux_alu_src(read_reg_2, imm, ALU_SRC) 
 
     #two outputs of the alu_op
-    alu_op_result, ZERO = (rs, alu_src_result, ZERO, ALU_OP) 
+    alu_op_result, ZERO = alu(rs, alu_src_result, ZERO, ALU_OP) 
 
     #is writing back to a register required?
     with pyrtl.conditional_assignment:
         with MEM_TO_REG == 1:
-            readData |= d_mem[result_op]
+            readData |= d_me[result_op]
 
     #result of memory to register mux at the end of the program to write back information to a register
     mem_to_reg_result = mux_mem_to_reg(readData, alu_op_result, MEM_TO_REG)
@@ -207,7 +207,6 @@ def cpu(pc, i_mem, d_mem, rf):
 
     #cycle through next instruction
     cpu(pc, i_mem, d_mem, rf)
-
 
 if __name__ == '__main__':
 
