@@ -3,6 +3,7 @@ import pyrtl
 rf  = pyrtl.MemBlock(bitwidth = 32,  addrwidth = 32, asynchronous = True, name = 'rf')
 d_mem = pyrtl.MemBlock(bitwidth = 32, addrwidth = 32, asynchronous = True, name = 'd_mem')
 i_mem = pyrtl.MemBlock(bitwidth = 32, addrwidth = 32, name = 'i_mem')
+
 pc = pyrtl.Register(bitwidth = 32, name = 'pc')
 
 def update(pc):
@@ -10,7 +11,6 @@ def update(pc):
     branch = pyrtl.WireVector(bitwidth = 32, name = 'branch')
     pc_jump = pyrtl.WireVector(bitwdith = 32, name = 'pc_jump')
 
-    ins <<= i_mem[pc]
     branch <<= immed
         
     with pyrtl.conditional_assignment:
@@ -129,6 +129,7 @@ def cpu(pc, i_mem, d_mem, rf):
     rt = pyrtl.WireVector(bitwidth=5, name='rd')
     rd = pyrtl.WireVector(bitwidth=5, name='rd')
     imm = pyrtl.WireVector(bitwidth=16, name='imm')
+
     funct = pyrtl.WireVector(bitwidth=6, name='funct')
 
     REG_DEST = pyrtl.WireVector(bitwidth=1, name='REG_DEST')
@@ -203,6 +204,9 @@ def cpu(pc, i_mem, d_mem, rf):
     
     #update pc in order to get the next instruction
     update(pc)
+
+    #cycle through next instruction
+    cpu(pc, i_mem, d_mem, rf)
 
 
 if __name__ == '__main__':
