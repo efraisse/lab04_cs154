@@ -47,9 +47,9 @@ def mux_reg_dst(rt, rd, reg_dst):
 def mux_mem_to_reg(readData, aluOut, memToReg):
     with pyrtl.conditional_assignment:
         with memToReg == 0:
-            write_data |= result_op
+            writeData |= result_op
         with memToReg == 1:
-            write_data |= read_data
+            writeData |= readData
 
 def mux_branch(pc1, addAlu, branch):
     with pyrtl.conditional_assignment:
@@ -122,6 +122,7 @@ def controller(opcode, funct):
 
 def cpu(pc, i_mem, d_mem, rf):
 
+    #wire declarations
     ins = pyrtl.WireVector(bitwidth = 32, name = 'ins')
 
     opcode = pyrlt.WireVector(bitwidth=6, name='opcode')
@@ -141,17 +142,22 @@ def cpu(pc, i_mem, d_mem, rf):
 
     control_signals = pyrtl.WireVector(bitwidth = 10, name='control_signals')
 
-    read_reg_1 = pyrtl.WireVector(bitwidth = 5, name = 'read_reg_1')
-    read_reg_2 = pyrtl.WireVector(bitwidth = 5, name = 'read_reg_2')
-    writeReg = pyrtl.WireVector(bitwidth = 5, name = 'writeReg')
-    read_data_1 = pyrtl.WireVector(bitwidth = 5, name = 'read_data_1')
-    read_data_2 = pyrtl.WireVector(bitwidth = 5, name = 'read_data_2')
+    read_reg_1 = pyrtl.WireVector(bitwidth = 32, name = 'read_reg_1') #
+    read_reg_2 = pyrtl.WireVector(bitwidth = 32, name = 'read_reg_2') #
+    writeReg = pyrtl.WireVector(bitwidth = 5, name = 'writeReg') #
+    reg_dst_result = pyrtl.WireVector(bitwidth = 5, name = 'reg_dst_result') #
+    alu_src_result = pyrtl.WireVector(bitwdith = 32, name = 'alu_src_result') #
+    alu_op_result = pyrtl.WireVector(bitwidth = 32, name = 'alu_op_result')
+    ZERO = pyrtl.WireVector(bitwidth = 1, name = 'ZERO')
+    mem_to_reg_result = pyrtl.WireVector(bitwidth = 32, name = 'mem_to_reg_result')
 
-    address = pyrtl.wireVector(bitwidth = 32, name = 'address')
     writeData = pyrtl.wireVector(bitwidth = 32, name = 'writeData')
     readData = pyrtl.wireVector(bitwidth = 32, name = 'readData')
-    dataMemory = pyrtl.wireVector(bitwidth = 32, name = 'dataMemory')
     
+
+    #instruction splitting
+    ins << i_mem[pc]
+
     opcode <<= ins[-6:]
     rs <<= ins[-11:-6]
     rt <<= ins[-16:-11]
@@ -167,33 +173,37 @@ def cpu(pc, i_mem, d_mem, rf):
     MEM_WRITE <<= control_signals[4:5]
     MEM_TO_REG <<= control_signals[3:4]
     ALU_OP <<= control_signals[0:3]
- 
-    read_reg_1 <<= rf[rs] #
-    read_reg_2 <<= rf[rt] #
 
-    reg_dst_result = mux_reg_dst(rt, rd, REG_DEST) #
 
-    #writeReg <<= rf[reg_dst_result]
+    #access the values from the 32 file register as specified by rs and rt
+    read_reg_1 <<= rf[rs] 
+    read_reg_2 <<= rf[rt] 
 
-    alu_src_result = (read_reg_2, imm, ALU_SRC) #
+    #figure out whether rd or rt will be written to
+    reg_dst_result = mux_reg_dst(rt, rd, REG_DEST) 
 
-    alu_op_result, ZERO = (rs, alu_src_result, zero, ALU_OP) #
+    #calculate value to go throug the alu_src multiplexer
+    alu_src_result = mux_alu_src(read_reg_2, imm, ALU_SRC) 
 
+    #two outputs of the alu_op
+    alu_op_result, ZERO = (rs, alu_src_result, ZERO, ALU_OP) 
+
+    #is writing back to a register required?
     with pyrtl.conditional_assignment:
-        with MEM_WRITE == 1:
-            d_mem[alu_op_result] |= read_reg_2
+        with MEM_TO_REG == 1:
+            readData |= d_mem[result_op]
 
-        with MEM_READ == 1:
-            readData |= d_mem[alu_op_result]
+    #result of memory to register mux at the end of the program to write back information to a register
+    mem_to_reg_result = mux_mem_to_reg(readData, alu_op_result, MEM_TO_REG)
 
-    mem_to_reg_result = mux_mem_to_reg(readData, alu_op_result, MEM_TO_REG) #
+    #if regwrite is 1 then we must writeback a value to a specific register specified by mem_to_reg_result
+    rf[reg_dst_result] = pyrtl.Memblock.EnabledWrite(writeData, enable = REG_WRITE)
 
+    #if mem_write is 1 then we must write a value to memory inside the data memory
     d_mem[result_op] <<= pyrtl.MemBlock.EnabledWrite(read_reg_2, enable = MEM_WRITE)
-    rf[
-
-    rf[reg_dst_result] <<= mem_to_reg_result
-
-    update()
+    
+    #update pc in order to get the next instruction
+    update(pc)
 
 
 if __name__ == '__main__':
