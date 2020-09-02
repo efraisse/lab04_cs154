@@ -146,7 +146,7 @@ def cpu(pc, i_mem, d_mem, rf):
             readData |= d_mem[alu_op_result]
 
     #if regwrite is 1 then we must writeback a value to a specific register specified by mem_to_reg_result
-    rf[REG_DEST] <<= pyrtl.MemBlock.EnabledWrite(writeData, enable = REG_WRITE)
+    rf[writeReg] <<= pyrtl.MemBlock.EnabledWrite(writeData, enable = REG_WRITE)
 
     #if mem_write is 1 then we must write a value to memory inside the data memory
     d_mem[alu_op_result] <<= pyrtl.MemBlock.EnabledWrite(read_reg_2, enable = MEM_WRITE)
