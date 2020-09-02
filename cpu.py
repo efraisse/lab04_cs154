@@ -3,7 +3,6 @@ import pyrtl
 rf  = pyrtl.MemBlock(bitwidth = 32,  addrwidth = 32, asynchronous = True, name = 'rf')
 d_mem = pyrtl.MemBlock(bitwidth = 32, addrwidth = 32, asynchronous = True, name = 'd_mem')
 i_mem = pyrtl.MemBlock(bitwidth = 32, addrwidth = 32, name = 'i_mem')
-
 pc = pyrtl.Register(bitwidth = 32, name = 'pc')
 
 def update(pc):
@@ -142,11 +141,11 @@ def cpu(pc, i_mem, d_mem, rf):
 
     control_signals = pyrtl.WireVector(bitwidth = 10, name='control_signals')
 
-    read_reg_1 = pyrtl.WireVector(bitwidth = 32, name = 'read_reg_1') #
-    read_reg_2 = pyrtl.WireVector(bitwidth = 32, name = 'read_reg_2') #
-    writeReg = pyrtl.WireVector(bitwidth = 5, name = 'writeReg') #
-    reg_dst_result = pyrtl.WireVector(bitwidth = 5, name = 'reg_dst_result') #
-    alu_src_result = pyrtl.WireVector(bitwdith = 32, name = 'alu_src_result') #
+    read_reg_1 = pyrtl.WireVector(bitwidth = 32, name = 'read_reg_1') 
+    read_reg_2 = pyrtl.WireVector(bitwidth = 32, name = 'read_reg_2') 
+    writeReg = pyrtl.WireVector(bitwidth = 5, name = 'writeReg') 
+    reg_dst_result = pyrtl.WireVector(bitwidth = 5, name = 'reg_dst_result') 
+    alu_src_result = pyrtl.WireVector(bitwdith = 32, name = 'alu_src_result') 
     alu_op_result = pyrtl.WireVector(bitwidth = 32, name = 'alu_op_result')
     ZERO = pyrtl.WireVector(bitwidth = 1, name = 'ZERO')
     mem_to_reg_result = pyrtl.WireVector(bitwidth = 32, name = 'mem_to_reg_result')
