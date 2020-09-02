@@ -3,133 +3,18 @@ import pyrtl
 rf  = pyrtl.MemBlock(bitwidth = 32,  addrwidth = 32, asynchronous = True, name = 'rf')
 d_mem = pyrtl.MemBlock(bitwidth = 32, addrwidth = 32, asynchronous = True, name = 'd_mem')
 i_mem = pyrtl.MemBlock(bitwidth = 32, addrwidth = 32, name = 'i_mem')
-
 pc = pyrtl.Register(bitwidth = 32, name = 'pc')
-
-def update(pc):
-
-    branch = pyrtl.WireVector(bitwidth = 32, name = 'branch')
-    pc_jump = pyrtl.WireVector(bitwdith = 32, name = 'pc_jump')
-
-    branch <<= immed
-        
-    with pyrtl.conditional_assignment:
-        with (BRANCH & ZERO) == 0:
-            pc_jump |= 1
-        with (BRANCH & ZERO) == 1:
-            branch |= branch.sig_extended(32)
-            pc_jump |= 1 + branch
-
-    pc.next <<= pc + pc_jump
-    
-def mux_alu_src(input1, input2, select):
-
-    result_src = pyrtl.WireVector(bitwidth = 32, name = 'result_src')
-
-    with pyrtl.conditional_assignment:
-        with select == 0:
-            result_src |= input1
-        with select == 1:
-            result_src |= imm.sig_extended(32)
-        with select == 2:
-            result_src |= imm.zero_extended(32)
-
-    return result_src
-
-def mux_reg_dst(rt, rd, reg_dst):
-    with pyrtl.conditional_assignment:
-        with reg_dst == 0:
-            return rt
-        with reg_dst == 1:
-            return rd
-
-def mux_mem_to_reg(readData, aluOut, memToReg):
-    with pyrtl.conditional_assignment:
-        with memToReg == 0:
-            writeData |= result_op
-        with memToReg == 1:
-            writeData |= readData
-
-def mux_branch(pc1, addAlu, branch):
-    with pyrtl.conditional_assignment:
-        with branch == 0:
-            return pc1
-        with branch == 1:
-            return addAlu + pc1
-
-def add_alu(immed, pc1):
-    return immed + pc1 + 1
-
-def alu(input_src_1, input_src_2, zero, alu_op):
-
-    result_op = pyrtl.WireVector(bitwidth = 32, name = 'result_op')
-
-    zero |= 0
-
-    with pyrtl.conditional_assignment:
-        with alu_op == 0:
-            return input_src_1 + input_src_2, zero
-        with alu_op == 1:
-            return input_src_1 & input_src_2, zero
-        with alu_op == 2:
-            return input_src_2, zero
-        with alu_op == 3:
-            return input_src_1 | input_src_2, zero
-    
-        with alu_op == 4:
-            result_op |= input_src_1 - input_src_2
-            with result_op < 0:
-                zero |= 1
-                return result_op, zero
-
-            with result_op >= 0:
-                return result_op, zero
-                
-        with alu_op == 5:
-            result_op = input_src_1 - input_src_2
-            with result_op == 0:
-                zero |= 1
-                return result_op, zero
-
-            with result_op != 0:
-                return result_op, zero
-    
-def controller(opcode, funct):
-    with pyrtl.conditional_assignment:
-        with opcode == 0:
-            with funct == 0x20:
-                control_signals |= 0x280
-            with funct == 0x24:
-                control_signals |= 0x281
-            with funct == 0x2a:
-                control_signals |= 0x284
-        with opcode == 0x08:
-            control_signals |= 0x0a0
-        with opcode == 0x0f:
-            control_signals |= 0x0aa
-        with opcode == 0x0d:
-            control_signals |= 0x0c3
-        with opcode == 0x23:
-            control_signals |= 0x0a8
-        with opcode == 0x2b:
-            control_signals |= 0x030
-        with opcode == 0x04:
-            control_signals |= 0x105
-
-    return control_signals
-
-
+   
 def cpu(pc, i_mem, d_mem, rf):
 
     #wire declarations
     ins = pyrtl.WireVector(bitwidth = 32, name = 'ins')
 
-    opcode = pyrlt.WireVector(bitwidth=6, name='opcode')
+    opcode = pyrtl.WireVector(bitwidth=6, name='opcode')
     rs = pyrtl.WireVector(bitwidth=5, name='rs')
-    rt = pyrtl.WireVector(bitwidth=5, name='rd')
+    rt = pyrtl.WireVector(bitwidth=5, name='rt')
     rd = pyrtl.WireVector(bitwidth=5, name='rd')
     imm = pyrtl.WireVector(bitwidth=16, name='imm')
-
     funct = pyrtl.WireVector(bitwidth=6, name='funct')
 
     REG_DEST = pyrtl.WireVector(bitwidth=1, name='REG_DEST')
@@ -145,18 +30,15 @@ def cpu(pc, i_mem, d_mem, rf):
     read_reg_1 = pyrtl.WireVector(bitwidth = 32, name = 'read_reg_1') 
     read_reg_2 = pyrtl.WireVector(bitwidth = 32, name = 'read_reg_2') 
     writeReg = pyrtl.WireVector(bitwidth = 5, name = 'writeReg') 
-    reg_dst_result = pyrtl.WireVector(bitwidth = 5, name = 'reg_dst_result') 
-    alu_src_result = pyrtl.WireVector(bitwdith = 32, name = 'alu_src_result') 
     alu_op_result = pyrtl.WireVector(bitwidth = 32, name = 'alu_op_result')
+    alu_src_result = pyrtl.WireVector(bitwidth = 32, name = 'alu_src_result')
     ZERO = pyrtl.WireVector(bitwidth = 1, name = 'ZERO')
-    mem_to_reg_result = pyrtl.WireVector(bitwidth = 32, name = 'mem_to_reg_result')
 
-    writeData = pyrtl.wireVector(bitwidth = 32, name = 'writeData')
-    readData = pyrtl.wireVector(bitwidth = 32, name = 'readData')
+    writeData = pyrtl.WireVector(bitwidth = 32, name = 'writeData')
+    readData = pyrtl.WireVector(bitwidth = 32, name = 'readData')
     
-
     #instruction splitting
-    ins << i_mem[pc]
+    ins <<= i_mem[pc]
 
     opcode <<= ins[-6:]
     rs <<= ins[-11:-6]
@@ -165,8 +47,30 @@ def cpu(pc, i_mem, d_mem, rf):
     funct <<= ins[0:6]
     imm <<= ins[0:16]
 
-    control_signals = controller(opcode, funct)
-    REG_DST <<= control_signals[9:10]
+    def controller(opcode, funct, control_signals):
+        with pyrtl.conditional_assignment:
+            with opcode == 0:
+                with funct == 0x20:
+                    control_signals |= 0x280
+                with funct == 0x24:
+                    control_signals |= 0x281
+                with funct == 0x2a:
+                    control_signals |= 0x284
+            with opcode == 0x08:
+                control_signals |= 0x0a0
+            with opcode == 0x0f:
+                control_signals |= 0x0aa
+            with opcode == 0x0d:
+                control_signals |= 0x0c3
+            with opcode == 0x23:
+                control_signals |= 0x0a8
+            with opcode == 0x2b:
+                control_signals |= 0x030
+            with opcode == 0x04:
+                control_signals |= 0x105
+            
+    controller(opcode, funct, control_signals)
+    REG_DEST <<= control_signals[9:10]
     BRANCH <<= control_signals[8:9]
     REG_WRITE <<= control_signals[7:8]
     ALU_SRC <<= control_signals[5:7]
@@ -174,43 +78,100 @@ def cpu(pc, i_mem, d_mem, rf):
     MEM_TO_REG <<= control_signals[3:4]
     ALU_OP <<= control_signals[0:3]
 
-
     #access the values from the 32 file register as specified by rs and rt
     read_reg_1 <<= rf[rs] 
     read_reg_2 <<= rf[rt] 
 
-    #figure out whether rd or rt will be written to
-    reg_dst_result = mux_reg_dst(rt, rd, REG_DEST) 
+    def alu(input_src_1, input_src_2, ZERO, alu_op, alu_op_result):
 
-    #calculate value to go throug the alu_src multiplexer
-    alu_src_result = mux_alu_src(read_reg_2, imm, ALU_SRC) 
+        with pyrtl.conditional_assignment:
+            with alu_op == 0:
+                alu_op_result |= input_src_1 + input_src_2
+                ZERO |= 0
+            with alu_op == 1:
+                alu_op_result |= input_src_1 & input_src_2
+                ZERO |= 0
+            with alu_op == 2:
+                alu_op_result |= input_src_2
+                ZERO |= 0
+            with alu_op == 3:
+                alu_op_result |= input_src_1 | input_src_2
+                ZERO = 0
+    
+            with alu_op == 4:
+                alu_op_result |= input_src_1 - input_src_2
+                with alu_op_result < 0:
+                    ZERO |= 1
+
+                with alu_op_result >= 0:
+                    ZERO |= 0
+                
+            with alu_op == 5:
+                alu_op_result = input_src_1 - input_src_2
+                with alu_op_result == 0:
+                    ZERO |= 1
+
+                with alu_op_result != 0:
+                    ZERO |= 0
+ 
+    #mux for alu_src
+    with pyrtl.conditional_assignment:
+        with ALU_SRC == 0:
+            alu_src_result |= read_reg_2
+        with ALU_SRC == 1:
+            alu_src_result |= imm.sign_extended(32)
+        with ALU_SRC == 2:
+            alu_src_result |= imm.zero_extended(32)
+
+    #mux for determining between rt and rd
+    with pyrtl.conditional_assignment:
+        with REG_DEST == 0:
+            writeReg |= rt
+        with REG_DEST == 1:
+            writeReg |= rd
+
+    #mux for writing to a register from memory
+    with pyrtl.conditional_assignment:
+        with MEM_TO_REG == 0:
+            writeData |= alu_op_result
+        with MEM_TO_REG == 1:
+            writeData |= readData
 
     #two outputs of the alu_op
-    alu_op_result, ZERO = alu(rs, alu_src_result, ZERO, ALU_OP) 
+    alu(rs, alu_src_result, ZERO, ALU_OP, alu_op_result)
 
     #is writing back to a register required?
     with pyrtl.conditional_assignment:
         with MEM_TO_REG == 1:
-            readData |= d_me[result_op]
-
-    #result of memory to register mux at the end of the program to write back information to a register
-    mem_to_reg_result = mux_mem_to_reg(readData, alu_op_result, MEM_TO_REG)
+            readData |= d_mem[alu_op_result]
 
     #if regwrite is 1 then we must writeback a value to a specific register specified by mem_to_reg_result
-    rf[reg_dst_result] = pyrtl.Memblock.EnabledWrite(writeData, enable = REG_WRITE)
+    rf[REG_DEST] <<= pyrtl.MemBlock.EnabledWrite(writeData, enable = REG_WRITE)
 
     #if mem_write is 1 then we must write a value to memory inside the data memory
-    d_mem[result_op] <<= pyrtl.MemBlock.EnabledWrite(read_reg_2, enable = MEM_WRITE)
-    
+    d_mem[alu_op_result] <<= pyrtl.MemBlock.EnabledWrite(read_reg_2, enable = MEM_WRITE)
+
+    def update(pc, BRANCH, ZERO):
+
+        pc_jump = pyrtl.WireVector(bitwidth = 32, name = 'pc_jump')
+        branch = pyrtl.WireVector(bitwidth =32, name = 'branch')
+
+        branch <<= imm.sign_extended(32)
+        
+        with pyrtl.conditional_assignment:
+            with (BRANCH & ZERO) == 0:
+                pc_jump |= pc + 1
+            with (BRANCH & ZERO) == 1:
+                pc_jump |= pc + 1 + branch
+
+        pc.next <<= pc_jump
     #update pc in order to get the next instruction
-    update(pc)
+    update(pc, BRANCH, ZERO)
 
     #cycle through next instruction
-    cpu(pc, i_mem, d_mem, rf)
+cpu(pc, i_mem, d_mem, rf)
 
 if __name__ == '__main__':
-
-
 
     """
 
@@ -275,7 +236,7 @@ if __name__ == '__main__':
     })
 
     # Run for an arbitrarily large number of cycles.
-    for cycle in range(500):
+    for cycle in range(10):
         sim.step({})
 
     # Use render_trace() to debug if your code doesn't work.
