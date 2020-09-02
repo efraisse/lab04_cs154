@@ -236,7 +236,7 @@ if __name__ == '__main__':
     })
 
     # Run for an arbitrarily large number of cycles.
-    for cycle in range(10):
+    for cycle in range(3):
         sim.step({})
 
     # Use render_trace() to debug if your code doesn't work.
