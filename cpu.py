@@ -1,5 +1,7 @@
 import pyrtl
 
+#collaborator: Rhys Tracy
+
 rf  = pyrtl.MemBlock(bitwidth = 32,  addrwidth = 32, asynchronous = True, name = 'rf')
 d_mem = pyrtl.MemBlock(bitwidth = 32, addrwidth = 32, asynchronous = True, name = 'd_mem')
 i_mem = pyrtl.MemBlock(bitwidth = 32, addrwidth = 32, name = 'i_mem')
